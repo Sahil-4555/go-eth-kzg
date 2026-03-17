@@ -211,19 +211,12 @@ func SerializePoly(poly kzg.Polynomial) *Blob {
 	return &blob
 }
 
-// serializeEvaluations converts an array of scalars of size `scalarsPerCell` to [Cell].
 func serializeEvaluationsInto(cell *Cell, evals []fr.Element) {
 	for i := 0; i < scalarsPerCell; i++ {
 		chunk := cell[i*SerializedScalarSize : (i+1)*SerializedScalarSize]
 		serScalar := SerializeScalar(evals[i])
 		copy(chunk, serScalar[:])
 	}
-}
-
-func serializeEvaluations(evals *[scalarsPerCell]fr.Element) *Cell {
-	cell := new(Cell)
-	serializeEvaluationsInto(cell, evals[:])
-	return cell
 }
 
 func deserializeCellInto(cell *Cell, evals []fr.Element) error {
@@ -242,12 +235,4 @@ func deserializeCellInto(cell *Cell, evals []fr.Element) error {
 	}
 
 	return nil
-}
-
-func deserializeCell(cell *Cell) ([]fr.Element, error) {
-	evals := make([]fr.Element, scalarsPerCell)
-	if err := deserializeCellInto(cell, evals); err != nil {
-		return nil, err
-	}
-	return evals, nil
 }

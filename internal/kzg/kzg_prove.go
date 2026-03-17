@@ -81,7 +81,7 @@ func computeQuotientPoly(domain *kzgdomain.Domain, f Polynomial, indexInDomain i
 func computeQuotientPolyOutsideDomain(domain *kzgdomain.Domain, f Polynomial, fz, z fr.Element) (Polynomial, error) {
 	// Compute the lagrange form of the denominator X - z.
 	// This means that we need to compute w - z for all points w in the domain.
-	tmpDenom := Polynomial(kzgdomain.GetElementSlice(uint64(len(f))))
+	tmpDenom := kzgdomain.GetElementSlice(uint64(len(f)))
 	defer kzgdomain.PutElementSlice(tmpDenom)
 	for i := 0; i < len(f); i++ {
 		tmpDenom[i].Sub(&domain.Roots[i], &z)
