@@ -18,7 +18,7 @@ var elementSlicePool = sync.Pool{
 	},
 }
 
-func getElementSlice(size uint64) []fr.Element {
+func GetElementSlice(size uint64) []fr.Element {
 	ptr, ok := elementSlicePool.Get().(*[]fr.Element)
 	if !ok {
 		panic("unexpected type from elementSlicePool")
@@ -32,7 +32,7 @@ func getElementSlice(size uint64) []fr.Element {
 	return s
 }
 
-func putElementSlice(s []fr.Element) {
+func PutElementSlice(s []fr.Element) {
 	if cap(s) >= 4096 {
 		elementSlicePool.Put(&s)
 	}
@@ -235,13 +235,13 @@ func (domain *Domain) EvaluateLagrangePolynomialWithIndex(poly []fr.Element, eva
 		return &poly[indexInDomain], indexInDomain, nil
 	}
 
-	denom := getElementSlice(domain.Cardinality)
-	defer putElementSlice(denom)
+	denom := GetElementSlice(domain.Cardinality)
+	defer PutElementSlice(denom)
 	for i := range denom {
 		denom[i].Sub(&evalPoint, &domain.Roots[i])
 	}
 	invDenom := fr.BatchInvert(denom)
-	defer putElementSlice(invDenom)
+	defer PutElementSlice(invDenom)
 
 	var result fr.Element
 	for i := 0; i < int(domain.Cardinality); i++ {
