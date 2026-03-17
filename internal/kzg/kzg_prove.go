@@ -2,7 +2,7 @@ package kzg
 
 import (
 	"github.com/consensys/gnark-crypto/ecc/bls12-381/fr"
-	"github.com/crate-crypto/go-eth-kzg/internal/domain"
+	kzgdomain "github.com/crate-crypto/go-eth-kzg/internal/domain"
 )
 
 // Open verifies that a polynomial f(x) when evaluated at a point `z` is equal to `f(z)`
@@ -11,7 +11,7 @@ import (
 // value to a negative number or 0 will make it default to the number of CPUs.
 //
 // [compute_kzg_proof_impl]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#compute_kzg_proof_impl
-func Open(domain *domain.Domain, p Polynomial, evaluationPoint fr.Element, ck *CommitKey, numGoRoutines int) (OpeningProof, error) {
+func Open(domain *kzgdomain.Domain, p Polynomial, evaluationPoint fr.Element, ck *CommitKey, numGoRoutines int) (OpeningProof, error) {
 	if len(p) == 0 || len(p) > len(ck.G1) {
 		return OpeningProof{}, ErrInvalidPolynomialSize
 	}
@@ -59,7 +59,7 @@ func Open(domain *domain.Domain, p Polynomial, evaluationPoint fr.Element, ck *C
 //
 // The matching code for this method is in `compute_kzg_proof_impl` where the quotient polynomial
 // is computed.
-func computeQuotientPoly(domain *domain.Domain, f Polynomial, indexInDomain int64, fz, z fr.Element) (Polynomial, error) {
+func computeQuotientPoly(domain *kzgdomain.Domain, f Polynomial, indexInDomain int64, fz, z fr.Element) (Polynomial, error) {
 	if domain.Cardinality != uint64(len(f)) {
 		return nil, ErrPolynomialMismatchedSizeDomain
 	}
@@ -78,10 +78,11 @@ func computeQuotientPoly(domain *domain.Domain, f Polynomial, indexInDomain int6
 //
 // This is the implementation of computeQuotientPoly for the case where z is not in the domain.
 // Since both input and output polynomials are given in evaluation form, this method just performs the desired operation pointwise.
-func computeQuotientPolyOutsideDomain(domain *domain.Domain, f Polynomial, fz, z fr.Element) (Polynomial, error) {
+func computeQuotientPolyOutsideDomain(domain *kzgdomain.Domain, f Polynomial, fz, z fr.Element) (Polynomial, error) {
 	// Compute the lagrange form of the denominator X - z.
 	// This means that we need to compute w - z for all points w in the domain.
-	tmpDenom := make(Polynomial, len(f))
+	tmpDenom := Polynomial(kzgdomain.GetElementSlice(uint64(len(f))))
+	defer kzgdomain.PutElementSlice(tmpDenom)
 	for i := 0; i < len(f); i++ {
 		tmpDenom[i].Sub(&domain.Roots[i], &z)
 	}
@@ -93,6 +94,7 @@ func computeQuotientPolyOutsideDomain(domain *domain.Domain, f Polynomial, fz, z
 	// it and not panic.
 	// Note: the returned slice is a new slice, thus we are free to use tmpDenom.
 	denominator := fr.BatchInvert(tmpDenom)
+	defer kzgdomain.PutElementSlice(denominator)
 
 	// Compute the lagrange form of the numerator f(X) - f(z)
 	// Since f(X) is already in lagrange form, we can compute f(X) - f(z)
@@ -115,13 +117,14 @@ func computeQuotientPolyOutsideDomain(domain *domain.Domain, f Polynomial, fz, z
 // This is the implementation of computeQuotientPoly for the case where the evaluation point is in the domain.
 //
 // [compute_quotient_eval_within_domain]: https://github.com/ethereum/consensus-specs/blob/017a8495f7671f5fff2075a9bfc9238c1a0982f8/specs/deneb/polynomial-commitments.md#compute_quotient_eval_within_domain
-func computeQuotientPolyOnDomain(domain *domain.Domain, f Polynomial, index uint64) (Polynomial, error) {
+func computeQuotientPolyOnDomain(domain *kzgdomain.Domain, f Polynomial, index uint64) (Polynomial, error) {
 	fz := f[index]
 	z := domain.Roots[index]
 	invZ := domain.PreComputedInverses[index]
 
 	// Compute the evaluation of X - z at every point in the domain.
-	rootsMinusZ := make([]fr.Element, domain.Cardinality)
+	rootsMinusZ := kzgdomain.GetElementSlice(domain.Cardinality)
+	defer kzgdomain.PutElementSlice(rootsMinusZ)
 	for i := 0; i < int(domain.Cardinality); i++ {
 		rootsMinusZ[i].Sub(&domain.Roots[i], &z)
 	}
@@ -135,6 +138,7 @@ func computeQuotientPolyOnDomain(domain *domain.Domain, f Polynomial, index uint
 
 	// Evaluation of 1/(X-z) at every point of the domain, except for index.
 	invRootsMinusZ := fr.BatchInvert(rootsMinusZ)
+	defer kzgdomain.PutElementSlice(invRootsMinusZ)
 
 	// The rootsMinusZ is now free to reuse, since BatchInvert returned
 	// a fresh slice. But we need to ensure to set the value for 'index' to zero
