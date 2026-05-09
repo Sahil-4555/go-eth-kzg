@@ -103,7 +103,7 @@ func TestVerifyCellKZGProofBatch_LengthValidation(t *testing.T) {
 			// Ignore other validation errors, we only care about ErrBatchLengthCheck
 			// or if it successfully passes the length check.
 			err := ctx.VerifyCellKZGProofBatch(tt.commitments, tt.cellIndices, tt.cells, tt.proofs)
-			
+
 			if tt.expectedErr == ErrBatchLengthCheck {
 				if err != ErrBatchLengthCheck {
 					t.Errorf("expected ErrBatchLengthCheck, got %v", err)
