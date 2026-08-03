@@ -48,6 +48,9 @@ func VerifyMultiPointKZGProofBatch(deduplicatedCommitments []bls12381.G1Affine, 
 	// Compute random linear sum of interpolation polynomials
 	interpolationPoly := make([]fr.Element, cosetSize)
 	for k, cosetEval := range cosetEvals {
+		if uint64(len(cosetEval)) != cosetSize {
+			return kzg.ErrPolynomialMismatchedSizeDomain
+		}
 		domain.BitReverse(cosetEval)
 
 		// Coset IFFT

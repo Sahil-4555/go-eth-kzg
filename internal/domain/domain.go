@@ -18,6 +18,7 @@ var elementSlicePool = sync.Pool{
 	},
 }
 
+// GetElementSlice retrieves a slice of fr.Element from the element pool (or allocates a new one if capacity is insufficient).
 func GetElementSlice(size uint64) []fr.Element {
 	ptr, ok := elementSlicePool.Get().(*[]fr.Element)
 	if !ok {
@@ -32,6 +33,10 @@ func GetElementSlice(size uint64) []fr.Element {
 	return s
 }
 
+// PutElementSlice recycles a slice of fr.Element into the pool if its capacity is >= 4096.
+// Security/Safety Warning: Never return a slice to PutElementSlice if that slice (or an alias of it)
+// is still referenced, stored, or returned to a caller. Recycling must only occur after all read/write
+// operations on the slice are completely finished.
 func PutElementSlice(s []fr.Element) {
 	if cap(s) >= 4096 {
 		elementSlicePool.Put(&s)
