@@ -1,7 +1,7 @@
 package kzg
 
 import (
-	"fmt"
+	"errors"
 	"math/big"
 	"sync"
 	"testing"
@@ -232,7 +232,7 @@ func TestQuotientPolyDoesNotAliasPooledSlice(t *testing.T) {
 
 		poison()
 
-		require.Equal(t, snapshot, []fr.Element(q),
+		require.Equal(t, snapshot, q,
 			"returned quotient polynomial was handed back to the element pool")
 	})
 
@@ -248,7 +248,7 @@ func TestQuotientPolyDoesNotAliasPooledSlice(t *testing.T) {
 
 		poison()
 
-		require.Equal(t, snapshot, []fr.Element(q),
+		require.Equal(t, snapshot, q,
 			"returned quotient polynomial was handed back to the element pool")
 	})
 }
@@ -286,7 +286,7 @@ func TestConcurrentComputeKZGProof(t *testing.T) {
 					return
 				}
 				if !proof.QuotientCommitment.Equal(&refProof.QuotientCommitment) {
-					errCh <- fmt.Errorf("concurrent Open produced mismatched quotient commitment")
+					errCh <- errors.New("concurrent Open produced mismatched quotient commitment")
 					return
 				}
 			}
@@ -300,5 +300,3 @@ func TestConcurrentComputeKZGProof(t *testing.T) {
 		require.NoError(t, err)
 	}
 }
-
-

@@ -181,4 +181,3 @@ func computeQuotientPolyOnDomain(dom *domain.Domain, f Polynomial, index uint64)
 
 	return quotientPoly, nil
 }
-
